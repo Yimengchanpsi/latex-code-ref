@@ -1,0 +1,83 @@
+%% coderef.sty — LaTeX package for referencing source code from equations.
+%%
+%% Workflow:
+%%   1. Tag lines in source code:  // \coderef{my_equation}
+%%   2. Run: python scan_coderefs.py ./src
+%%   3. In your document:
+%%        \usepackage{coderef}
+%%        \input{coderef_defs}
+%%   4. Use:
+%%        \coderef{my_equation}          file + line
+%%        \codereffile{my_equation}      file name only
+%%        \coderefline{my_equation}      line number only
+%%
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{coderef}[2026/03/30 v1.0 Source-code cross-references]
+
+\RequirePackage{etoolbox}   % for \ifcsdef
+
+%% ── Internal counter for iteration ───────────────────────────────────────────
+\newcount\coderef@i
+
+%% ── Storage: called by the generated coderef_defs.tex ────────────────────────
+
+% \coderefsetcount{name}{n}
+\newcommand*{\coderefsetcount}[2]{%
+  \expandafter\def\csname coderef@n@#1\endcsname{#2}}
+
+% \coderefsetentry{name}{idx}{file}{line}
+\newcommand*{\coderefsetentry}[4]{%
+  \expandafter\def\csname coderef@f@#1@#2\endcsname{#3}%
+  \expandafter\def\csname coderef@l@#1@#2\endcsname{#4}}
+
+%% ── Internal accessors ───────────────────────────────────────────────────────
+
+\newcommand*{\coderef@count}[1]{\csname coderef@n@#1\endcsname}
+\newcommand*{\coderef@file} [2]{\csname coderef@f@#1@#2\endcsname}
+\newcommand*{\coderef@line} [2]{\csname coderef@l@#1@#2\endcsname}
+
+%% ── Formatters (override these to change the rendered output) ────────────────
+
+% Full reference: "solver.cpp, line 42"
+\newcommand*{\coderef@fmt@full}[2]{%
+  \texttt{\coderef@file{#1}{#2}},~line~\coderef@line{#1}{#2}}
+
+% File only: "solver.cpp"
+\newcommand*{\coderef@fmt@file}[2]{%
+  \texttt{\coderef@file{#1}{#2}}}
+
+% Line only: "line 42"
+\newcommand*{\coderef@fmt@line}[2]{%
+  line~\coderef@line{#1}{#2}}
+
+%% ── Undefined-tag handler ────────────────────────────────────────────────────
+
+\newcommand*{\coderef@undef}[1]{%
+  \PackageWarning{coderef}{Undefined coderef tag: '#1'}%
+  [\textbf{?#1?}]}
+
+%% ── Public API ───────────────────────────────────────────────────────────────
+
+% \coderef{name}       — file + line
+\newcommand*{\coderef}[1]{%
+  \ifcsdef{coderef@n@#1}{%
+    \coderef@fmt@full{#1}{1}%
+  }{\coderef@undef{#1}}}
+
+% \codereffull{name}   — file + line (explicit alias)
+\newcommand*{\codereffull}[1]{%
+  \ifcsdef{coderef@n@#1}{%
+    \coderef@fmt@full{#1}{1}%
+  }{\coderef@undef{#1}}}
+
+% \codereffile{name}   — file name only
+\newcommand*{\codereffile}[1]{%
+  \ifcsdef{coderef@n@#1}{%
+    \coderef@fmt@file{#1}{1}%
+  }{\coderef@undef{#1}}}
+
+% \coderefline{name}   — line number only
+\newcommand*{\coderefline}[1]{%
+  \ifcsdef{coderef@n@#1}{%
+    \coderef@fmt@line{#1}{1}%
+  }{\coderef@undef{#1}}}
